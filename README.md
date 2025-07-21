@@ -1,121 +1,129 @@
 # GEC Theme
 
-A custom ggplot2 and GT theme for Game Economist Consulting data visualizations.
-
-## Overview
-
-This R theme package provides:
-- Custom ggplot2 theme with professional styling
-- GT table theme for consistent table formatting
-- Color palettes and typography settings
-- Smart number and currency formatting
-- Image-based chart container system with branding
+A custom ggplot2 theme for Game Economist Consulting featuring clean, FiveThirtyEight-inspired visualizations with distinctive yellow branding.
 
 ## Installation
 
+Since this package is not on CRAN, install directly from GitHub:
+
 ```r
-# Source the theme files
-source("gec_theme.R")
-source("gec_gt_theme.R")
+# Install devtools if you haven't already
+install.packages("devtools")
+
+# Install GEC theme from GitHub
+devtools::source_url("https://raw.githubusercontent.com/econosopher/gec_theme/main/gec_theme.R")
+devtools::source_url("https://raw.githubusercontent.com/econosopher/gec_theme/main/gec_gt_theme.R")
 ```
 
-## Usage
+Or clone the repository and source locally:
 
-### Basic ggplot2 theme
+```r
+# After cloning the repo
+source("path/to/gec_theme/gec_theme.R")
+source("path/to/gec_theme/gec_gt_theme.R")
+```
+
+## Quick Start
 
 ```r
 library(ggplot2)
 
-# Apply the GEC theme to a plot
-ggplot(data, aes(x, y)) +
-  geom_line() +
+# Create a simple bar chart with GEC theme
+ggplot(mtcars, aes(x = reorder(row.names(mtcars), mpg), y = mpg)) +
+  geom_col(fill = gec_colors$accent) +
+  coord_flip() +
+  labs(
+    title = "FUEL EFFICIENCY BY CAR MODEL",
+    subtitle = "Miles per gallon comparison",
+    x = NULL,
+    y = NULL
+  ) +
   theme_gec()
+
+# Add the logo strip and yellow border
+p <- last_plot()
+img <- create_gec_container(p, width = 1000, height = 600)
 ```
 
-### Using color scales
+## Key Features
+
+- **Clean aesthetic**: No grid lines, minimal elements following FiveThirtyEight style
+- **Bold typography**: Uppercase titles with Monument Extended font
+- **Brand colors**: Bright yellow (#E4F577) accents with professional data colors
+- **Logo integration**: Automatic logo placement in bottom strip
+- **Smart formatting**: Built-in number and currency formatters
+
+## Color Palette
 
 ```r
-# Discrete colors
-ggplot(data, aes(x, y, color = category)) +
-  geom_line() +
-  scale_color_gec() +
-  theme_gec()
-
-# Continuous colors
-ggplot(data, aes(x, y, fill = value)) +
-  geom_tile() +
-  scale_fill_gec_continuous() +
-  theme_gec()
+# Main data colors
+gec_colors$accent    # Blue (#23648D)
+gec_colors$green     # Green (#2D6F31)
+gec_colors$secondary # Dark Grey (#363D46)
+gec_colors$primary   # Yellow (#E4F577) - for borders/accents only
 ```
 
-### Creating branded chart containers
+## Creating Publication-Ready Charts
 
 ```r
-# Create a chart with GEC branding
-p <- ggplot(data, aes(x, y)) +
-  geom_line() +
+# Generate all examples
+source("examples/scripts/generate_all_examples.R")
+
+# Basic usage pattern
+p <- ggplot(data, aes(...)) +
+  geom_*() +
+  scale_*_gec() +
+  labs(
+    title = "YOUR TITLE IN UPPERCASE",
+    subtitle = "Descriptive subtitle",
+    x = NULL,  # Remove axis labels
+    y = NULL
+  ) +
   theme_gec()
 
-create_gec_container(
-  plot = p,
-  title = "Chart Title",
-  subtitle = "Chart subtitle"
+# Add branding
+img <- create_gec_container(
+  p,
+  logo_strip = TRUE,
+  width = 1000,
+  height = 600
 )
+
+# Save
+magick::image_write(img, "output.png")
 ```
 
-### GT table theming
+## GT Table Styling
 
 ```r
 library(gt)
 
-# Apply GEC theme to a GT table
-gt_table <- data %>%
+data %>%
   gt() %>%
-  theme_gec_gt()
+  theme_gec_gt() %>%
+  tab_header(
+    title = "TABLE TITLE",
+    subtitle = "Table subtitle"
+  )
 ```
 
-### Number formatting
+## Requirements
 
-```r
-# Format currency
-format_gec_currency(1234567)  # "$1.2M"
+- R >= 3.5.0
+- ggplot2
+- magick (for logo functionality)
+- gt (for table styling)
+- scales (for number formatting)
 
-# Format large numbers
-format_gec_number(1234567)    # "1.2M"
+## Font Setup
 
-# Format percentages
-format_gec_percent(0.123)     # "12.3%"
-```
-
-## Customization
-
-The theme uses the following default settings that can be customized:
-
-### Colors
-- Primary: `#FF66A5` (pink)
-- Secondary: `#0F0D4F` (dark blue)
-- Accent colors for data visualization
-- Background and text colors
-
-### Typography
-- Title font: Agrandir
-- Body font: Inter Tight
-- Caption font: Poppins
-
-To customize these settings, modify the color and font definitions in `gec_theme.R`.
-
-## Examples
-
-See the `examples/` directory for sample implementations:
-- `example_charts.R` - Various chart types with GEC theme
-- `example_table.R` - GT table examples
-- `run_all_examples.R` - Generate all example outputs
+The theme uses Monument Extended and League Spartan fonts. These are included in `style_guide/fonts/`. Install them on your system for best results, though the theme will fall back to system fonts if needed.
 
 ## License
 
-[Your license here]
+Proprietary - Game Economist Consulting
 
 ## Contact
 
 Game Economist Consulting
-[Your contact information]
+https://gameeconomist.com
