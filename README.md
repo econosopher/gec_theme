@@ -4,24 +4,15 @@ A custom ggplot2 theme for Game Economist Consulting featuring clean, FiveThirty
 
 ## Installation
 
-Since this package is not on CRAN, install directly from GitHub:
-
 ```r
-# Install devtools if you haven't already
-install.packages("devtools")
-
-# Install GEC theme from GitHub
+# Install and load the GEC theme directly from GitHub
 devtools::source_url("https://raw.githubusercontent.com/econosopher/gec_theme/main/gec_theme.R")
 devtools::source_url("https://raw.githubusercontent.com/econosopher/gec_theme/main/gec_gt_theme.R")
+
+# That's it! The theme is now loaded and ready to use
 ```
 
-Or clone the repository and source locally:
-
-```r
-# After cloning the repo
-source("path/to/gec_theme/gec_theme.R")
-source("path/to/gec_theme/gec_gt_theme.R")
-```
+Note: You'll need `devtools` installed (`install.packages("devtools")` if you don't have it).
 
 ## Quick Start
 
@@ -126,4 +117,4 @@ Proprietary - Game Economist Consulting
 ## Contact
 
 Game Economist Consulting
-https://gameeconomist.com
+https://gameeconomistconsulting.com
