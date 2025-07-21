@@ -1,0 +1,27 @@
+# R related
+.Rhistory
+.Rapp.history
+.RData
+.Ruserdata
+*.Rproj
+.Rproj.user/
+
+# Output files
+examples/output/
+*.png
+*.jpg
+*.pdf
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*~
+*.swp
+*.swo
+
+# Style guide assets (to be added separately)
+style_guide/
+images/
+fonts/
