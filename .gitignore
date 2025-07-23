@@ -6,10 +6,6 @@
 *.Rproj
 .Rproj.user/
 
-# Output files
-*.png
-*.jpg
-*.pdf
 
 # OS files
 .DS_Store
