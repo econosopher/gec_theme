@@ -7,7 +7,6 @@
 .Rproj.user/
 
 # Output files
-examples/output/
 *.png
 *.jpg
 *.pdf
@@ -20,8 +19,3 @@ Thumbs.db
 *~
 *.swp
 *.swo
-
-# Style guide assets (to be added separately)
-style_guide/
-images/
-fonts/
