@@ -15,3 +15,6 @@ Thumbs.db
 *~
 *.swp
 *.swo
+# Claude configuration
+CLAUDE.md
+.claude/
