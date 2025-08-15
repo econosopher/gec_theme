@@ -7,14 +7,16 @@ library(grid)
 library(scales)
 library(gridExtra)
 
-# Load magick for image-based post-processing
-if (!require(magick, quietly = TRUE)) {
-  cat("Installing magick package for image processing...\n")
-  install.packages("magick")
-  library(magick)
-} else {
-  library(magick)
+# Strict package requirements (fail fast)
+gec_require_packages <- function(pkgs) {
+  for (pkg in pkgs) {
+    if (!requireNamespace(pkg, quietly = TRUE)) {
+      stop(paste0("Required package '", pkg, "' is not installed. Install with: install.packages(\"", pkg, "\")"), call. = FALSE)
+    }
+  }
 }
+
+gec_require_packages(c("magick"))
 
 # Prevent automatic Rplot.pdf generation
 options(device = function(...) png(tempfile(), ...))
@@ -24,16 +26,54 @@ options(device = function(...) png(tempfile(), ...))
 # Secondary: League Spartan (body text, secondary font)  
 # Fonts are included in style_guide/fonts/ folder
 
+# Get the directory where this script is located
+# Use a more robust method to find the script directory
+.gec_theme_dir <- tryCatch({
+  # This works when sourced
+  dirname(normalizePath(sys.frame(1)$ofile))
+}, error = function(e) {
+  # Fallback: check if we're in an R package context
+  if (file.exists("../../gec_theme/style_guide/fonts/MonumentExtended-Regular.otf")) {
+    normalizePath("../../gec_theme")
+  } else if (file.exists("style_guide/fonts/MonumentExtended-Regular.otf")) {
+    getwd()
+  } else {
+    # Last resort: try to find the gec_theme directory
+    getwd()
+  }
+})
+
+gec_find_existing <- function(candidates) {
+  for (p in candidates) {
+    # First try absolute path from theme directory
+    abs_path <- file.path(.gec_theme_dir, p)
+    if (file.exists(abs_path)) return(normalizePath(abs_path, winslash = "/", mustWork = TRUE))
+    # Then try relative path from current directory
+    if (file.exists(p)) return(normalizePath(p, winslash = "/", mustWork = TRUE))
+  }
+  NA_character_
+}
+
+.gec_font_files <- list(
+  monument = gec_find_existing(c(
+    "style_guide/fonts/MonumentExtended-Regular.otf",
+    "../style_guide/fonts/MonumentExtended-Regular.otf"
+  )),
+  league_spartan = gec_find_existing(c(
+    "style_guide/fonts/LeagueSpartan-VariableFont_wght.ttf",
+    "../style_guide/fonts/LeagueSpartan-VariableFont_wght.ttf",
+    "style_guide/fonts/League Spartan Font.ttf",
+    "../style_guide/fonts/League Spartan Font.ttf"
+  ))
+)
+
 # Install fonts to system if needed
 install_gec_fonts <- function() {
-  font_paths <- list(
-    monument = "style_guide/fonts/MonumentExtended-Regular.otf",
-    league_spartan = "style_guide/fonts/LeagueSpartan-VariableFont_wght.ttf"
-  )
+  font_paths <- .gec_font_files
   
   for (font_name in names(font_paths)) {
     font_path <- font_paths[[font_name]]
-    if (file.exists(font_path)) {
+    if (!is.na(font_path) && file.exists(font_path)) {
       system(paste("cp", shQuote(font_path), "~/Library/Fonts/"))
     }
   }
@@ -42,19 +82,30 @@ install_gec_fonts <- function() {
   message("Run library(extrafont); font_import(); loadfonts() to use in R")
 }
 
-# Font hierarchy with fallbacks
+# Export font paths for consumers (e.g., GT CSS embedding)
+gec_get_font_paths <- function() .gec_font_files
+
+# Verify font files exist (fail fast if missing)
+gec_verify_font_files <- function() {
+  paths <- unlist(.gec_font_files, use.names = TRUE)
+  missing_idx <- is.na(paths) | !file.exists(paths)
+  if (any(missing_idx)) {
+    missing <- names(paths)[missing_idx]
+    stop(paste0(
+      "Missing required font files: ",
+      paste(missing, collapse = ", "),
+      ". Ensure fonts are present under 'style_guide/fonts/'."
+    ), call. = FALSE)
+  }
+}
+
+# Font hierarchy (no fallbacks - fail if fonts missing)
 gec_font_title <- "sans"      # Monument Extended for titles
 gec_font_subtitle <- "sans"   # League Spartan for subtitles
 gec_font_body <- "sans"       # Monument Extended for body text
 
-# Temporarily disabled custom fonts to avoid crashes
-# TODO: Re-enable once font compatibility issues are resolved
-# tryCatch({
-#   if (require(extrafont, quietly = TRUE)) {
-#     available_fonts <- fonts()
-#     # ... font detection code ...
-#   }
-# }, error = function(e) invisible())
+# Note: Custom fonts temporarily using sans to avoid crashes
+# To enable custom fonts, install and register them with extrafont
 
 # Backward compatibility
 gec_font_family <- gec_font_title
@@ -105,21 +156,22 @@ theme_gec <- function(base_size = 12, logo_alpha = 0.1, border = TRUE, border_co
       # Text styling with GEC font hierarchy
       text = element_text(color = gec_colors$secondary, family = gec_font_body),
       plot.title = element_text(
-        size = base_size * 2.5,  # Even larger for thicker appearance (30px at base 12)
+        size = 24,  # Much larger for better readability (matching DoF)
         color = gec_colors$secondary,
         face = "bold",
         family = gec_font_title,  # Monument Extended
         hjust = 0,  # Left-aligned like 538
-        margin = margin(l = 0, b = 5, t = 0),  # Reduced margins for tighter spacing
-        lineheight = 0.9  # Tighter line spacing for multi-line titles
+        margin = margin(l = 0, b = 8, t = 0),  # Slightly more bottom margin
+        lineheight = 1.0
       ),
       plot.title.position = "plot",  # Align with entire plot area
       plot.subtitle = element_text(
-        size = base_size * 1.1,
+        size = 14,  # Increased for better readability (matching DoF)
         color = gec_colors$grey_dark,
         family = gec_font_subtitle,  # League Spartan
         hjust = 0,  # Left-aligned like title
-        margin = margin(l = 0, b = 15)  # Increased bottom margin for more space
+        margin = margin(l = 0, b = 15),  # Increased bottom margin for more space
+        lineheight = 1.2  # Standardized lineheight
       ),
       plot.subtitle.position = "plot",  # Align with entire plot area
       
@@ -127,7 +179,7 @@ theme_gec <- function(base_size = 12, logo_alpha = 0.1, border = TRUE, border_co
       axis.title = element_blank(),  # Remove axis titles like 538
       axis.text = element_text(
         color = gec_colors$grey_dark,
-        size = base_size * 0.8,
+        size = 12,  # Fixed size for better readability (matching DoF)
         family = gec_font_body  # Monument Extended
       ),
       axis.line = element_blank(),  # Remove axis lines like 538
@@ -146,23 +198,23 @@ theme_gec <- function(base_size = 12, logo_alpha = 0.1, border = TRUE, border_co
       ),
       panel.background = element_rect(fill = "white", color = NA),
       
-      # Legend styling with Poppins (538-inspired positioning)
+      # Legend styling with Monument Extended (538-inspired positioning)
       legend.title = element_text(
         color = gec_colors$secondary,
-        size = base_size * 0.9,
+        size = 12,  # Fixed size for consistency (matching DoF)
         face = "bold",
         family = gec_font_body  # Monument Extended
       ),
       legend.text = element_text(
         color = gec_colors$grey_dark,
-        size = base_size * 0.8,
+        size = 11,  # Fixed size for readability (matching DoF)
         family = gec_font_body  # Monument Extended
       ),
-      legend.position = "bottom",
+      legend.position = "top",  # Standardized to top position
       legend.direction = "horizontal",  # 538-style horizontal legend
       legend.box = "horizontal",
       legend.box.just = "left",
-      legend.margin = margin(t = 15),
+      legend.margin = margin(t = 5, b = 10),  # Adjusted margins for top position
       legend.spacing.x = unit(15, "pt"),  # More space between legend items
       legend.key.width = unit(1.5, "cm"),  # Wider legend keys
       
@@ -170,7 +222,7 @@ theme_gec <- function(base_size = 12, logo_alpha = 0.1, border = TRUE, border_co
       strip.text = element_text(
         color = gec_colors$grey_dark,  # Dark grey text on yellow background
         face = "bold",
-        size = base_size * 0.9,
+        size = 12,  # Fixed size for consistency (matching DoF)
         family = gec_font_body  # Monument Extended
       ),
       strip.background = element_rect(
@@ -179,7 +231,7 @@ theme_gec <- function(base_size = 12, logo_alpha = 0.1, border = TRUE, border_co
       ),
       
       # Adjusted plot margins to accommodate border and logo strip
-      plot.margin = margin(t = 25, r = 25, b = 80, l = 25)
+      plot.margin = margin(t = 20, r = 20, b = 60, l = 20)  # Reduced margins to use more space
     )
     
   return(base_theme)

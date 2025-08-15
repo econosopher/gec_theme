@@ -91,7 +91,7 @@ library(gt)
 
 data %>%
   gt() %>%
-  theme_gec_gt() %>%
+  theme_gec_gt(weight_strategy = "light", line_thickness = "regular") %>%
   tab_header(
     title = "TABLE TITLE",
     subtitle = "Table subtitle"

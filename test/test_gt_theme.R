@@ -19,7 +19,7 @@ test_basic_table <- function() {
   
   table <- data %>%
     gt() %>%
-    theme_gec_gt() %>%
+    theme_gec_gt(weight_strategy = "light", line_thickness = "regular") %>%
     tab_header(
       title = "GAMING PLATFORM METRICS",
       subtitle = "Q4 2024 Performance Summary"
@@ -44,7 +44,7 @@ test_conditional_table <- function() {
   
   table <- data %>%
     gt() %>%
-    theme_gec_gt() %>%
+    theme_gec_gt(weight_strategy = "light", line_thickness = "regular") %>%
     tab_header(
       title = "TOP MOBILE GAMES PERFORMANCE",
       subtitle = "Daily metrics and monetization"
@@ -82,7 +82,7 @@ test_border_options <- function() {
   # No border
   table_no_border <- data %>%
     gt() %>%
-    theme_gec_gt(container_border = FALSE) %>%
+    theme_gec_gt(container_border = FALSE, weight_strategy = "light", line_thickness = "regular") %>%
     tab_header(title = "NO BORDER EXAMPLE") %>%
     fmt_number(Users) %>%
     fmt_currency(Revenue, decimals = 1)
@@ -93,7 +93,9 @@ test_border_options <- function() {
     theme_gec_gt(
       container_border = TRUE,
       container_border_color = gec_colors$accent,
-      container_border_width = 5
+      container_border_width = 5,
+      weight_strategy = "light",
+      line_thickness = "regular"
     ) %>%
     tab_header(title = "CUSTOM BORDER COLOR") %>%
     fmt_number(Users) %>%
@@ -116,7 +118,7 @@ test_complex_table <- function() {
   
   table <- data %>%
     gt(groupname_col = "Region") %>%
-    theme_gec_gt() %>%
+    theme_gec_gt(weight_strategy = "light", line_thickness = "regular") %>%
     tab_header(
       title = "REGIONAL GAMING REVENUE BY QUARTER",
       subtitle = "2024 performance in millions USD"
@@ -149,7 +151,7 @@ test_color_showcase <- function() {
   
   table <- color_data %>%
     gt() %>%
-    theme_gec_gt() %>%
+    theme_gec_gt(weight_strategy = "light", line_thickness = "regular") %>%
     tab_header(
       title = "GEC BRAND COLOR PALETTE",
       subtitle = "Official colors for tables and visualizations"

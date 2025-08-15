@@ -321,7 +321,7 @@ create_horizontal_bar_example <- function() {
   
   table <- data %>%
     gt() %>%
-    theme_gec_gt() %>%
+    theme_gec_gt(weight_strategy = "light", line_thickness = "regular") %>%
     tab_header(
       title = "GAMING PLATFORM METRICS",
       subtitle = "Q4 2024 Performance Summary"
@@ -363,7 +363,7 @@ create_horizontal_bar_example <- function() {
   
   table <- data %>%
     gt(groupname_col = "Region") %>%
-    theme_gec_gt() %>%
+    theme_gec_gt(weight_strategy = "light", line_thickness = "regular") %>%
     tab_header(
       title = "REGIONAL GAMING REVENUE BY QUARTER",
       subtitle = "2024 performance in millions USD"

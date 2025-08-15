@@ -4,11 +4,53 @@
 library(gt)
 library(dplyr)
 
-# Source the main GEC theme for colors
-if (file.exists("gec_theme.R")) {
+# Webfont import (League Spartan) similar to DoF theme
+gec_use_web_fonts <- function() {
+  "@import url('https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;600;700&display=swap');\n"
+}
+
+# Embed Monument Extended locally (base64) so gt PNG exports keep the title font
+gec_embed_monument_css <- function() {
+  if (!requireNamespace("base64enc", quietly = TRUE)) {
+    stop("Required package 'base64enc' is not installed. Install with: install.packages('base64enc')", call. = FALSE)
+  }
+  # Use the font paths from the main theme
+  paths <- gec_get_font_paths()
+  if (is.null(paths$monument) || is.na(paths$monument) || !file.exists(paths$monument)) {
+    stop("Monument Extended font file not found at style_guide/fonts/MonumentExtended-Regular.otf", call. = FALSE)
+  }
+  raw <- readBin(paths$monument, what = "raw", n = file.info(paths$monument)$size)
+  b64 <- base64enc::base64encode(raw)
+  paste0(
+    "@font-face { font-family: 'Monument Extended'; src: url('data:font/otf;base64,",
+    b64,
+    "') format('opentype'); font-weight: normal; font-style: normal; }\n"
+  )
+}
+
+# Require and source the main GEC theme (fail fast)
+# Try to find gec_theme.R in the same directory as this file
+.gec_gt_dir <- tryCatch({
+  dirname(normalizePath(sys.frame(1)$ofile))
+}, error = function(e) {
+  # Fallback: check common locations
+  if (file.exists("../../gec_theme/gec_theme.R")) {
+    normalizePath("../../gec_theme")
+  } else {
+    getwd()
+  }
+})
+
+gec_theme_path <- file.path(.gec_gt_dir, "gec_theme.R")
+if (file.exists(gec_theme_path)) {
+  source(gec_theme_path)
+} else if (file.exists("gec_theme.R")) {
   source("gec_theme.R")
+} else if (file.exists("../gec_theme.R")) {
+  source("../gec_theme.R")
 } else {
-  # Define colors if main theme not available
+  # Define colors if main theme not available (fail fast is better)
+  stop("gec_theme.R not found. Ensure it exists in the project root.", call. = FALSE)
   gec_colors <- list(
     primary = "#E4F577",      # Bright Yellow-Green
     secondary = "#363D46",    # Dark Grey
@@ -23,7 +65,8 @@ if (file.exists("gec_theme.R")) {
   # Font setup - GEC font hierarchy with CSS-compatible font stacks
   gec_font_title <- "'Monument Extended', 'Arial Black', 'Helvetica Neue', sans-serif"
   gec_font_subtitle <- "'League Spartan', 'Arial', 'Helvetica Neue', sans-serif" 
-  gec_font_body <- "'Monument Extended', 'Helvetica Neue', 'Arial', sans-serif"
+  # Use League Spartan for all non-header/body text for improved legibility
+  gec_font_body <- "'League Spartan', 'Arial', 'Helvetica Neue', sans-serif"
   
   # Temporarily disabled custom fonts to avoid crashes
   # TODO: Re-enable once font compatibility issues are resolved
@@ -65,7 +108,18 @@ theme_gec_gt <- function(gt_table,
                          text_color = gec_colors$secondary,
                          container_border = TRUE,
                          container_border_color = gec_colors$primary,
-                         container_border_width = 3) {
+                         container_border_width = 3,
+                         weight_strategy = c("light", "regular", "heavy"),
+                         line_thickness = c("light", "regular", "heavy")) {
+  weight_strategy <- match.arg(weight_strategy)
+  line_thickness <- match.arg(line_thickness)
+  # Font weight hierarchy tuned for thick display fonts
+  label_weight <- if (weight_strategy == "light") "normal" else if (weight_strategy == "regular") "normal" else "bold"
+  spanner_weight <- if (weight_strategy == "light") "normal" else if (weight_strategy == "regular") "normal" else "bold"
+  body_weight <- "normal"
+  # Line thickness scale
+  container_w <- if (line_thickness == "light") 2 else if (line_thickness == "regular") container_border_width else max(container_border_width, 4)
+  header_rule_w <- if (line_thickness == "light") 1 else if (line_thickness == "regular") 2 else 3
   
   result_table <- gt_table %>%
     # Table options
@@ -80,8 +134,11 @@ theme_gec_gt <- function(gt_table,
       
       # Header styling
       column_labels.background.color = header_bg,
-      column_labels.font.weight = "bold",
+      column_labels.font.weight = label_weight,
       column_labels.font.size = px(13),
+      column_labels.border.bottom.style = "solid",
+      column_labels.border.bottom.color = border_color,
+      column_labels.border.bottom.width = px(header_rule_w),
       
       # Table body
       table.background.color = gec_colors$white,
@@ -89,16 +146,16 @@ theme_gec_gt <- function(gt_table,
       
       # Borders
       table.border.top.style = "solid",
-      table.border.top.width = if (container_border) px(container_border_width) else px(2),
+      table.border.top.width = if (container_border) px(container_w) else px(2),
       table.border.top.color = if (container_border) container_border_color else header_bg,
       table.border.bottom.style = "solid",
-      table.border.bottom.width = if (container_border) px(container_border_width) else px(2),
+      table.border.bottom.width = if (container_border) px(container_w) else px(2),
       table.border.bottom.color = if (container_border) container_border_color else header_bg,
       table.border.left.style = if (container_border) "solid" else "none",
-      table.border.left.width = if (container_border) px(container_border_width) else px(0),
+      table.border.left.width = if (container_border) px(container_w) else px(0),
       table.border.left.color = if (container_border) container_border_color else "transparent",
       table.border.right.style = if (container_border) "solid" else "none",
-      table.border.right.width = if (container_border) px(container_border_width) else px(0),
+      table.border.right.width = if (container_border) px(container_w) else px(0),
       table.border.right.color = if (container_border) container_border_color else "transparent",
       
       # Row striping
@@ -114,28 +171,78 @@ theme_gec_gt <- function(gt_table,
       footnotes.padding = px(4)
     ) %>%
     
-    # Style column labels with Poppins
+    # Style column labels with GEC font stack
     tab_style(
       style = list(
         cell_text(
           color = header_text,
-          weight = "bold",
+          weight = label_weight,
           font = gec_font_body  # Poppins font stack for headers
         )
       ),
       locations = cells_column_labels(everything())
     ) %>%
     
-    # Style table body with Poppins
+    # Style table body
     tab_style(
       style = list(
         cell_text(
           color = text_color,
-          font = gec_font_body  # Poppins font stack for data
+          font = gec_font_body,  # Poppins font stack for data
+          weight = body_weight
         )
       ),
       locations = cells_body()
     )
+
+  # Ensure source notes and footnotes use light/normal weight for readability
+  result_table <- result_table %>%
+    tab_style(
+      style = list(cell_text(weight = "normal", color = text_color, font = gec_font_body)),
+      locations = cells_source_notes()
+    ) %>%
+    tab_style(
+      style = list(cell_text(weight = "normal", color = text_color, font = gec_font_body)),
+      locations = cells_footnotes()
+    )
+
+  # Spanner typography weight
+  result_table <- result_table %>%
+    tab_style(
+      style = list(cell_text(weight = spanner_weight, color = header_text)),
+      locations = cells_column_spanners()
+    )
+  
+  # Inject CSS with embedded Monument and web import for League Spartan
+  base_css <- paste0(
+    gec_embed_monument_css(),
+    gec_use_web_fonts(),
+    "\n",
+    "  .gt_title {\n",
+    "    font-family: 'Monument Extended', 'Arial Black', 'Helvetica Neue', sans-serif !important;\n",
+    "  }\n",
+    "  .gt_subtitle {\n",
+    "    font-family: 'League Spartan', 'Arial', 'Helvetica Neue', sans-serif !important;\n",
+    "  }\n",
+    "  .gt_col_heading, .gt_column_spanner {\n",
+    "    font-family: 'Monument Extended', 'Helvetica Neue', 'Arial', sans-serif !important;\n",
+    "  }\n",
+    "  .gt_sourcenote, .gt_row {\n",
+    "    font-family: 'League Spartan', 'Arial', 'Helvetica Neue', sans-serif !important;\n",
+    "    font-weight: 400 !important;\n",
+    "  }\n",
+    "  .gt_footnotes, .gt_footnote, .gt_footnote_marks {\n",
+    "    font-family: 'League Spartan', 'Arial', 'Helvetica Neue', sans-serif !important;\n",
+    "    font-weight: 400 !important;\n",
+    "  }\n",
+    "  table, .gt_table {\n",
+    "    font-family: 'League Spartan', 'Arial', 'Helvetica Neue', sans-serif !important;\n",
+    "  }\n"
+  )
+  
+  result_table <- result_table %>% gt::opt_css(css = base_css)
+  
+  return(result_table)
 }
 
 # GEC GT color functions for conditional formatting
